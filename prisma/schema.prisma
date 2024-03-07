@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:system@localhost:5432/postgres?schema=public"
+}
+
+enum userStatus {
+  active
+  inactive
+  rejected
+  deleted
+}
+
+enum accountType {
+  customer
+  admin
+  casher
+}
+
+model user {
+  id              Int         @id @default(autoincrement())
+  uuid            String?     @db.VarChar(255)
+  firstName       String      @db.VarChar(255)
+  lastName        String      @db.VarChar(255)
+  email           String      @unique @db.VarChar(255)
+  username        String      @unique @db.VarChar(255)
+  password        String      @db.VarChar(255)
+  status          userStatus  @default(inactive)
+  accountType     accountType @default(customer)
+  updatedAt       DateTime    @default(now()) @db.Timestamp(6)
+  createdAt       DateTime    @default(now()) @db.Timestamp(6)
+  emailOtp        String?     @default("") @db.VarChar(6)
+  phoneOtp        String?     @default("") @db.VarChar(6)
+  phoneNumber     String      @unique @db.VarChar(500)
+  firstLogin      Boolean     @default(true)
+  phoneIsVerified Boolean     @default(false)
+  emailIsVerified Boolean     @default(false)
+  otpExpiry       DateTime?
+  category        category[]
+  product         product[]
+  stuff           stuff[]
+  order           order[]
+
+  @@index([email])
+}
+
+// Define the data model for categories
+model category {
+  id           Int       @id @default(autoincrement())
+  categoryName String    @db.VarChar(255)
+  description  String?   @db.VarChar(255)
+  admin        user      @relation(fields: [adminId], references: [id])
+  adminId      Int
+  product      product[]
+}
+
+// Define the data model for products
+model product {
+  id          Int         @id @default(autoincrement())
+  productCode String?     @db.VarChar(255)
+  productName String      @db.VarChar(255)
+  description String?     @db.VarChar(255)
+  price       Decimal     @db.Decimal(10, 2)
+  quantity    Int         @default(0)
+  category    category?   @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  admin       user?       @relation(fields: [adminId], references: [id])
+  adminId     Int
+  orderItem   orderItem[]
+}
+
+// Define the data model for orders
+model order {
+  id          Int         @id @default(autoincrement())
+  customer    user?       @relation(fields: [customerId], references: [id])
+  customerId  Int
+  tableNumber Int?
+  orderDate   DateTime    @default(now())
+  status      String
+  orderItems  orderItem[]
+  totalPrice  Decimal     @default(0)
+  gst         Decimal     @default(0)
+}
+
+// Define the data model for order items
+model orderItem {
+  id        Int      @id @default(autoincrement())
+  order     order?   @relation(fields: [orderId], references: [id])
+  orderId   Int?
+  product   product? @relation(fields: [productId], references: [id])
+  productId Int
+  userId    Int?
+  quantity  Int
+  subtotal  Decimal 
+}
+
+enum stuffRole {
+  headChef
+  casher
+  dishwaster
+  barista
+  prepCook
+  hostess
+  pastryCook
+  kitchenManager
+  generalManager
+  ExecutiveChef
+}
+
+// stuff
+model stuff {
+  id           Int       @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  mobileNumber String?
+  hireDate     DateTime  @default(now())
+  salary       Decimal
+  address      String?
+  description  String?   @db.VarChar(255)
+  role         stuffRole
+  createdBy    Int
+  user         user?     @relation(fields: [createdBy], references: [id])
+}
